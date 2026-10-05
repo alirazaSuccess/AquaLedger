@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// =====================================================
+// SUPPLIER USERS
+// =====================================================
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         UserRole @default(SUPPLIER)
+  isActive     Boolean  @default(true)
+
+  store        Store?
+  passwordResetTokens PasswordResetToken[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([role])
+  @@index([isActive])
+}
+
+// =====================================================
+// ADMIN
+// =====================================================
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  isActive     Boolean  @default(true)
+
+  loginHistory AdminLogin[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// =====================================================
+// ADMIN LOGIN HISTORY
+// =====================================================
+
+model AdminLogin {
+  id        Int      @id @default(autoincrement())
+  adminId   Int
+  loginAt   DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+  success   Boolean  @default(true)
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([loginAt])
+}
+
+// =====================================================
+// STORE
+// =====================================================
+
+model Store {
+  id        Int     @id @default(autoincrement())
+  ownerId   Int     @unique
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  logo      String?
+  currency  String  @default("PKR")
+  timezone  String  @default("Asia/Karachi")
+  isActive  Boolean @default(true)
+
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  customers     Customer[]
+  deliveries    Delivery[]
+  payments      Payment[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// =====================================================
+// CUSTOMER
+// =====================================================
+
+model Customer {
+  id               Int          @id @default(autoincrement())
+  storeId          Int
+  name             String
+  phone            String?
+  deliveryLocation String
+  customerType     CustomerType
+  dailyBottles     Int
+  bottlePrice      Decimal      @db.Decimal(10, 2)
+  startDate        DateTime
+  isActive         Boolean      @default(true)
+
+  store      Store      @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  deliveries Delivery[]
+  payments   Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([customerType])
+  @@index([isActive])
+}
+
+// =====================================================
+// DELIVERY
+// =====================================================
+
+model Delivery {
+  id           Int      @id @default(autoincrement())
+  storeId      Int
+  customerId   Int
+  deliveryDate DateTime
+  bottles      Int
+  bottlePrice  Decimal  @db.Decimal(10, 2)
+  totalAmount  Decimal  @db.Decimal(10, 2)
+
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([customerId])
+  @@index([deliveryDate])
+}
+
+// =====================================================
+// PAYMENT
+// =====================================================
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  storeId     Int
+  customerId  Int
+  amount      Decimal  @db.Decimal(10, 2)
+  paymentDate DateTime
+  notes       String?
+
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([storeId])
+  @@index([customerId])
+  @@index([paymentDate])
+}
+
+// =====================================================
+// SUBSCRIPTION PLAN
+// =====================================================
+
+model SubscriptionPlan {
+  id           Int      @id @default(autoincrement())
+  name         String
+  durationDays Int
+  price        Decimal  @db.Decimal(10, 2)
+  isActive     Boolean  @default(true)
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// =====================================================
+// SUBSCRIPTION
+// =====================================================
+
+model Subscription {
+  id         Int                @id @default(autoincrement())
+  storeId    Int
+  planId     Int
+  startDate  DateTime
+  endDate    DateTime
+  amount     Decimal            @db.Decimal(10, 2)
+  status     SubscriptionStatus @default(TRIAL)
+  paidAt     DateTime?
+  activatedAt DateTime?
+  notes      String?
+
+  store    Store                @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  plan     SubscriptionPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments SubscriptionPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([planId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+// =====================================================
+// SUBSCRIPTION PAYMENT
+// =====================================================
+
+model SubscriptionPayment {
+  id             Int                       @id @default(autoincrement())
+  subscriptionId Int
+  amount         Decimal                   @db.Decimal(10, 2)
+  paymentDate    DateTime
+  status         SubscriptionPaymentStatus @default(PENDING)
+  reference      String?
+  notes          String?
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([paymentDate])
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// =====================================================
+// ENUMS
+// =====================================================
+
+enum UserRole {
+  SUPPLIER
+}
+
+enum CustomerType {
+  CASH
+  MONTHLY
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  PENDING
+  CANCELLED
+}
+
+enum SubscriptionPaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}

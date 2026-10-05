@@ -30,6 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# AI / editor tools
+.agents/
+.claude/
+.windsurf/
+skills-lock.json
+
 # env files (can opt-in for committing if needed)
 .env*
 
@@ -39,3 +45,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/app/generated/prisma
