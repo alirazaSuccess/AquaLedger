@@ -70,12 +70,20 @@ export default function CustomersPage() {
 
         {!loading && !error && (
           <>
-            <Link
+            <div className="mb-4 flex items-center justify-right gap-4 w-full">
+              <Link
               href="/customers/inactive"
               className="my-5 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
             >
               Inactive Customers
             </Link>
+            <Link
+              href="/customers/new"
+              className="my-5 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+            >
+              + Add Customer
+            </Link>
+            </div>
             <CustomerTable customers={customers} />
           </>
         )}

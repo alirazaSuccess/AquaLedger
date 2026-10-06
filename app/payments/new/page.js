@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function NewPaymentPage() {
+function NewPaymentPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -150,7 +150,7 @@ export default function NewPaymentPage() {
             setError(error.message || "Failed to record payment.");
         } finally {
             setSubmitting(false);
-        }   
+        }
 
     };
 
@@ -346,5 +346,12 @@ export default function NewPaymentPage() {
     </div>
     </div>
 
+    );
+}
+export default function NewPaymentPage() {
+    return (
+        <Suspense fallback={null}>
+            <NewPaymentPageContent />
+        </Suspense>
     );
 }

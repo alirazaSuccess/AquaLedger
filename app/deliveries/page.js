@@ -5,21 +5,18 @@ import Navbar from "@/components/Navbar";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-function getPakistanTodayRange() {
-  const now = new Date();
+function getPakistanDateRange(dateString) {
+  const [year, month, day] = dateString.split("-").map(Number);
 
-  const pakistanNow = new Date(
-    now.toLocaleString("en-US", {
-      timeZone: "Asia/Karachi",
-    })
+  const start = new Date(
+    Date.UTC(year, month - 1, day, 0, 0, 0, 0)
   );
 
-  const start = new Date(pakistanNow);
-  start.setHours(0, 0, 0, 0);
+  const end = new Date(
+    Date.UTC(year, month - 1, day, 23, 59, 59, 999)
+  );
 
-  const end = new Date(pakistanNow);
-  end.setHours(23, 59, 59, 999);
-
+  // Pakistan is UTC+5
   const utcStart = new Date(
     start.getTime() - 5 * 60 * 60 * 1000
   );
@@ -34,8 +31,20 @@ function getPakistanTodayRange() {
   };
 }
 
-export default async function DeliveriesPage() {
+export default async function DeliveriesPage({ searchParams }) {
   try {
+    const params = await searchParams;
+
+    const selectedDate = params?.date || new Date().toLocaleDateString(
+      "en-CA",
+      {
+        timeZone: "Asia/Karachi",
+      }
+    );
+
+    const customerType = params?.customerType || "All Customers";
+    const deliveryStatus = params?.status || "All Status";
+    const searchCustomer = (params?.search || "").trim().toLowerCase();
     // --------------------------------
     // Get logged-in supplier
     // --------------------------------
@@ -59,7 +68,7 @@ export default async function DeliveriesPage() {
 
     const storeId = user.store.id;
 
-    const { start, end } = getPakistanTodayRange();
+    const { start, end } = getPakistanDateRange(selectedDate);
 
     // --------------------------------
     // Get active customers
@@ -145,6 +154,28 @@ export default async function DeliveriesPage() {
       };
     });
 
+    const filteredDeliveries = deliveries.filter((delivery) => {
+      const matchesSearch =
+        !searchCustomer ||
+        delivery.customerName
+          ?.toLowerCase()
+          .includes(searchCustomer);
+
+      const matchesCustomerType =
+        customerType === "All Customers" ||
+        delivery.customerType === customerType;
+
+      const matchesStatus =
+        deliveryStatus === "All Status" ||
+        delivery.status === deliveryStatus;
+
+      return (
+        matchesSearch &&
+        matchesCustomerType &&
+        matchesStatus
+      );
+    });
+
     // --------------------------------
     // Summary
     // --------------------------------
@@ -200,8 +231,13 @@ export default async function DeliveriesPage() {
             </div>
 
             {/* Date & Filters */}
-            <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <form
+              method="GET"
+              className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+
+                {/* Date */}
                 <div>
                   <label
                     htmlFor="delivery-date"
@@ -212,17 +248,14 @@ export default async function DeliveriesPage() {
 
                   <input
                     id="delivery-date"
+                    name="date"
                     type="date"
-                    defaultValue={new Date().toLocaleDateString(
-                      "en-CA",
-                      {
-                        timeZone: "Asia/Karachi",
-                      }
-                    )}
+                    defaultValue={selectedDate}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
 
+                {/* Customer Type */}
                 <div>
                   <label
                     htmlFor="customer-type"
@@ -233,14 +266,25 @@ export default async function DeliveriesPage() {
 
                   <select
                     id="customer-type"
+                    name="customerType"
+                    defaultValue={customerType}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   >
-                    <option>All Customers</option>
-                    <option>Cash</option>
-                    <option>Monthly</option>
+                    <option value="All Customers">
+                      All Customers
+                    </option>
+
+                    <option value="Cash">
+                      Cash
+                    </option>
+
+                    <option value="Monthly">
+                      Monthly
+                    </option>
                   </select>
                 </div>
 
+                {/* Delivery Status */}
                 <div>
                   <label
                     htmlFor="delivery-status"
@@ -251,15 +295,29 @@ export default async function DeliveriesPage() {
 
                   <select
                     id="delivery-status"
+                    name="status"
+                    defaultValue={deliveryStatus}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   >
-                    <option>All Status</option>
-                    <option>Delivered</option>
-                    <option>Pending</option>
-                    <option>Skipped</option>
+                    <option value="All Status">
+                      All Status
+                    </option>
+
+                    <option value="Delivered">
+                      Delivered
+                    </option>
+
+                    <option value="Pending">
+                      Pending
+                    </option>
+
+                    <option value="Skipped">
+                      Skipped
+                    </option>
                   </select>
                 </div>
 
+                {/* Search */}
                 <div>
                   <label
                     htmlFor="search-customer"
@@ -270,13 +328,24 @@ export default async function DeliveriesPage() {
 
                   <input
                     id="search-customer"
+                    name="search"
                     type="text"
+                    defaultValue={params?.search || ""}
                     placeholder="Search customer..."
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
               </div>
-            </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="submit"
+                  className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </form>
 
             {/* Summary Cards */}
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -337,7 +406,7 @@ export default async function DeliveriesPage() {
               </div>
             </div>
 
-            <DeliveryTable deliveries={deliveries} />
+            <DeliveryTable deliveries={filteredDeliveries} />
           </div>
         </main>
       </>

@@ -57,8 +57,15 @@ function formatDate(date) {
   }).format(new Date(date));
 }
 
-export default async function PaymentsPage() {
+export default async function PaymentsPage({ searchParams }) {
   try {
+
+    const params = await searchParams;
+
+    const searchCustomer = (params?.search || "").trim().toLowerCase();
+    const customerType = params?.customerType || "All Customers";
+    const paymentStatus = params?.status || "All Status";
+    const paymentDate = params?.date || "";
     // --------------------------------
     // Get logged-in supplier
     // --------------------------------
@@ -136,6 +143,11 @@ export default async function PaymentsPage() {
         status = "Partial";
       }
 
+      const latestPayment =
+        customer.payments.length > 0
+          ? customer.payments[0]
+          : null;
+
       return {
         id: customer.id,
         customerId: customer.id,
@@ -148,7 +160,49 @@ export default async function PaymentsPage() {
         paidAmount,
         remaining,
         status,
+        latestPaymentDate: latestPayment
+          ? latestPayment.paymentDate
+          : null,
+        paymentDates: customer.payments.map(
+          (payment) => payment.paymentDate
+        ),
       };
+    });
+
+    const filteredPayments = payments.filter((payment) => {
+      const matchesSearch =
+        !searchCustomer ||
+        payment.customerName
+          ?.toLowerCase()
+          .includes(searchCustomer);
+
+      const matchesCustomerType =
+        customerType === "All Customers" ||
+        payment.customerType === customerType;
+
+      const matchesStatus =
+        paymentStatus === "All Status" ||
+        payment.status === paymentStatus;
+
+      const matchesDate =
+        !paymentDate ||
+        payment.paymentDates.some((date) => {
+          const pakistanDate = new Intl.DateTimeFormat(
+            "en-CA",
+            {
+              timeZone: "Asia/Karachi",
+            }
+          ).format(new Date(date));
+
+          return pakistanDate === paymentDate;
+        });
+
+      return (
+        matchesSearch &&
+        matchesCustomerType &&
+        matchesStatus &&
+        matchesDate
+      );
     });
 
     // --------------------------------
@@ -309,7 +363,10 @@ export default async function PaymentsPage() {
             </div>
 
             {/* Filters */}
-            <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <form
+              method="GET"
+              className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
 
                 {/* Search */}
@@ -323,7 +380,9 @@ export default async function PaymentsPage() {
 
                   <input
                     id="search-customer"
+                    name="search"
                     type="text"
+                    defaultValue={params?.search || ""}
                     placeholder="Search customer..."
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
@@ -340,13 +399,21 @@ export default async function PaymentsPage() {
 
                   <select
                     id="customer-type"
+                    name="customerType"
+                    defaultValue={customerType}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   >
-                    <option>
+                    <option value="All Customers">
                       All Customers
                     </option>
-                    <option>Cash</option>
-                    <option>Monthly</option>
+
+                    <option value="Cash">
+                      Cash
+                    </option>
+
+                    <option value="Monthly">
+                      Monthly
+                    </option>
                   </select>
                 </div>
 
@@ -361,18 +428,29 @@ export default async function PaymentsPage() {
 
                   <select
                     id="payment-status"
+                    name="status"
+                    defaultValue={paymentStatus}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   >
-                    <option>
+                    <option value="All Status">
                       All Status
                     </option>
-                    <option>Paid</option>
-                    <option>Partial</option>
-                    <option>Pending</option>
+
+                    <option value="Paid">
+                      Paid
+                    </option>
+
+                    <option value="Partial">
+                      Partial
+                    </option>
+
+                    <option value="Pending">
+                      Pending
+                    </option>
                   </select>
                 </div>
 
-                {/* Date */}
+                {/* Payment Date */}
                 <div>
                   <label
                     htmlFor="payment-date"
@@ -383,22 +461,26 @@ export default async function PaymentsPage() {
 
                   <input
                     id="payment-date"
+                    name="date"
                     type="date"
-                    defaultValue={new Date().toLocaleDateString(
-                      "en-CA",
-                      {
-                        timeZone:
-                          "Asia/Karachi",
-                      }
-                    )}
+                    defaultValue={paymentDate}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
               </div>
-            </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="submit"
+                  className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-green-700"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </form>
 
             {/* Payments Table */}
-            <PaymentTable payments={payments} />
+            <PaymentTable payments={filteredPayments} />
 
             {/* Recent Payment History */}
             <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
