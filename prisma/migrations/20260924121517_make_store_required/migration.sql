@@ -7,22 +7,22 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `customer` DROP FOREIGN KEY `Customer_storeId_fkey`;
+ALTER TABLE `Customer` DROP FOREIGN KEY `Customer_storeId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `delivery` DROP FOREIGN KEY `Delivery_storeId_fkey`;
+ALTER TABLE `Delivery` DROP FOREIGN KEY `Delivery_storeId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `payment` DROP FOREIGN KEY `Payment_storeId_fkey`;
+ALTER TABLE `Payment` DROP FOREIGN KEY `Payment_storeId_fkey`;
 
 -- AlterTable
-ALTER TABLE `customer` MODIFY `storeId` INTEGER NOT NULL;
+ALTER TABLE `Customer` MODIFY `storeId` INTEGER NOT NULL;
 
 -- AlterTable
-ALTER TABLE `delivery` MODIFY `storeId` INTEGER NOT NULL;
+ALTER TABLE `Delivery` MODIFY `storeId` INTEGER NOT NULL;
 
 -- AlterTable
-ALTER TABLE `payment` MODIFY `storeId` INTEGER NOT NULL;
+ALTER TABLE `Payment` MODIFY `storeId` INTEGER NOT NULL;
 
 -- AddForeignKey
 ALTER TABLE `Customer` ADD CONSTRAINT `Customer_storeId_fkey` FOREIGN KEY (`storeId`) REFERENCES `Store`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

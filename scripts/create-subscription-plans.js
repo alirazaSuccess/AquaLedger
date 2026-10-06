@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma.js";
+import "dotenv/config";
 
 async function main() {
   console.log("Creating subscription plans...");

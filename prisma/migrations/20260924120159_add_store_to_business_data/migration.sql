@@ -1,11 +1,11 @@
 -- AlterTable
-ALTER TABLE `customer` ADD COLUMN `storeId` INTEGER NULL;
+ALTER TABLE `Customer` ADD COLUMN `storeId` INTEGER NULL;
 
 -- AlterTable
-ALTER TABLE `delivery` ADD COLUMN `storeId` INTEGER NULL;
+ALTER TABLE `Delivery` ADD COLUMN `storeId` INTEGER NULL;
 
 -- AlterTable
-ALTER TABLE `payment` ADD COLUMN `storeId` INTEGER NULL;
+ALTER TABLE `Payment` ADD COLUMN `storeId` INTEGER NULL;
 
 -- CreateIndex
 CREATE INDEX `Customer_storeId_idx` ON `Customer`(`storeId`);

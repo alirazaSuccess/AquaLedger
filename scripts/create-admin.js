@@ -1,3 +1,4 @@
+import "dotenv/config";
 import prisma from "../lib/prisma.js";
 import bcrypt from "bcryptjs";
 
