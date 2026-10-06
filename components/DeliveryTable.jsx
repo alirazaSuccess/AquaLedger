@@ -19,6 +19,8 @@ export default function DeliveryTable({
             status: delivery.status || "Pending",
         }))
     );
+    const [savingId, setSavingId] = useState(null);
+    const [savingAll, setSavingAll] = useState(false);
 
     const handleBottleChange = (id, value) => {
         setDeliveryData((previous) =>
@@ -47,6 +49,11 @@ export default function DeliveryTable({
     };
 
     const handleSave = async (delivery) => {
+        const deliveryId = delivery._id || delivery.id;
+
+        if (savingId === deliveryId || savingAll) return;
+
+        setSavingId(deliveryId);
         const status = delivery.status;
         const bottles = Number(delivery.actualBottles || 0);
 
@@ -114,88 +121,92 @@ export default function DeliveryTable({
         } catch (error) {
             console.error("Save delivery error:", error);
             alert(error.message || "Failed to save delivery.");
+        } finally {
+            setSavingId(null);
         }
     };
 
-const handleSaveAll = async () => {
-    try {
-        const savedIds = [];
+    const handleSaveAll = async () => {
+        if (savingAll) return;
 
-        for (const delivery of deliveryData) {
-            const status = delivery.status;
-            const bottles = Number(delivery.actualBottles || 0);
+        setSavingAll(true);
+        try {
+            const savedIds = [];
 
-            // Pending / Skipped
-            if (status === "Pending" || status === "Skipped") {
-                savedIds.push(delivery._id || delivery.id);
-                continue;
-            }
+            for (const delivery of deliveryData) {
+                const status = delivery.status;
+                const bottles = Number(delivery.actualBottles || 0);
 
-            // Delivered must have bottles
-            if (status === "Delivered" && bottles <= 0) {
-                throw new Error(
-                    `Please enter bottle quantity for ${
-                        delivery.customerName || "customer"
-                    }.`
-                );
-            }
+                // Pending / Skipped
+                if (status === "Pending" || status === "Skipped") {
+                    savedIds.push(delivery._id || delivery.id);
+                    continue;
+                }
 
-            if (!delivery.customerId) {
-                throw new Error(
-                    `Customer ID is missing for ${
-                        delivery.customerName || "customer"
-                    }.`
-                );
-            }
-
-            const response = await fetch("/api/deliveries", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    customerId: delivery.customerId,
-                    bottles,
-                    deliveryDate:
-                        delivery.deliveryDate ||
-                        new Date().toISOString(),
-                }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                        `Failed to save ${
-                            delivery.customerName || "delivery"
+                // Delivered must have bottles
+                if (status === "Delivered" && bottles <= 0) {
+                    throw new Error(
+                        `Please enter bottle quantity for ${delivery.customerName || "customer"
                         }.`
-                );
+                    );
+                }
+
+                if (!delivery.customerId) {
+                    throw new Error(
+                        `Customer ID is missing for ${delivery.customerName || "customer"
+                        }.`
+                    );
+                }
+
+                const response = await fetch("/api/deliveries", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        customerId: delivery.customerId,
+                        bottles,
+                        deliveryDate:
+                            delivery.deliveryDate ||
+                            new Date().toISOString(),
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        `Failed to save ${delivery.customerName || "delivery"
+                        }.`
+                    );
+                }
+
+                savedIds.push(delivery._id || delivery.id);
             }
 
-            savedIds.push(delivery._id || delivery.id);
+            // Remove processed rows from UI
+            setDeliveryData((previous) =>
+                previous.filter(
+                    (delivery) =>
+                        !savedIds.includes(
+                            delivery._id || delivery.id
+                        )
+                )
+            );
+
+            if (onSaveAll) {
+                onSaveAll(savedIds);
+            }
+
+            alert("Deliveries processed successfully.");
+        } catch (error) {
+            console.error("Save all deliveries error:", error);
+            alert(error.message || "Failed to save deliveries.");
+        } finally {
+            setSavingAll(false);
         }
-
-        // Remove processed rows from UI
-        setDeliveryData((previous) =>
-            previous.filter(
-                (delivery) =>
-                    !savedIds.includes(
-                        delivery._id || delivery.id
-                    )
-            )
-        );
-
-        if (onSaveAll) {
-            onSaveAll(savedIds);
-        }
-
-        alert("Deliveries processed successfully.");
-    } catch (error) {
-        console.error("Save all deliveries error:", error);
-        alert(error.message || "Failed to save deliveries.");
-    }
-};
+    };
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -383,9 +394,10 @@ const handleSaveAll = async () => {
                                                 onClick={() =>
                                                     handleSave(delivery)
                                                 }
+                                                disabled={savingId === id || savingAll}
                                                 className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700"
                                             >
-                                                Save
+                                                {savingId === id ? "Saving..." : "Save"}
                                             </button>
                                         </td>
                                     </tr>
@@ -400,9 +412,10 @@ const handleSaveAll = async () => {
                     <button
                         type="button"
                         onClick={handleSaveAll}
+                        disabled={savingAll || savingId !== null}
                         className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
                     >
-                        Save All Changes
+                        {savingAll ? "Saving..." : "Save All Changes"}
                     </button>
                 </div>
             </div>
@@ -557,9 +570,10 @@ const handleSaveAll = async () => {
                                 onClick={() =>
                                     handleSave(delivery)
                                 }
+                                disabled={savingId === id || savingAll}
                                 className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
                             >
-                                Save Delivery
+                                {savingId === id ? "Saving..." : "Save Delivery"}
                             </button>
                         </div>
                     );

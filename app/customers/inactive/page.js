@@ -5,110 +5,110 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function InactiveCustomersPage() {
-const [customers, setCustomers] = useState([]);
-const [loading, setLoading] = useState(true);
-const [activatingId, setActivatingId] = useState(null);
-const [error, setError] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activatingId, setActivatingId] = useState(null);
+  const [error, setError] = useState("");
 
-// =========================
-// Fetch Inactive Customers
-// =========================
-const fetchInactiveCustomers = async () => {
-try {
-setLoading(true);
-setError("");
+  // =========================
+  // Fetch Inactive Customers
+  // =========================
+  const fetchInactiveCustomers = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  const response = await fetch("/api/customers/inactive");
+      const response = await fetch("/api/customers/inactive");
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch inactive customers.");
-  }
+      if (!response.ok) {
+        throw new Error("Failed to fetch inactive customers.");
+      }
 
-  const data = await response.json();
+      const data = await response.json();
 
-  setCustomers(data.customers || []);
-} catch (error) {
-  console.error("Fetch inactive customers error:", error);
-  setError("Failed to load inactive customers.");
-} finally {
-  setLoading(false);
-}
-
-};
-
-useEffect(() => {
-fetchInactiveCustomers();
-}, []);
-
-// =========================
-// Activate Customer
-// =========================
-const handleActivate = async (customer) => {
-const confirmed = window.confirm(
-`Are you sure you want to activate ${customer.name}?`
-);
-
-if (!confirmed) {
-  return;
-}
-
-try {
-  setActivatingId(customer.id);
-  setError("");
-
-  const response = await fetch(
-    `/api/customers/${customer.id}`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: customer.name,
-        phone: customer.phone || "",
-        deliveryLocation: customer.deliveryLocation,
-        customerType: customer.customerType,
-        dailyBottles: customer.dailyBottles,
-        bottlePrice: customer.bottlePrice,
-        startDate: customer.startDate,
-        isActive: true,
-      }),
+      setCustomers(data.customers || []);
+    } catch (error) {
+      console.error("Fetch inactive customers error:", error);
+      setError("Failed to load inactive customers.");
+    } finally {
+      setLoading(false);
     }
-  );
 
-  const data = await response.json();
+  };
 
-  if (!response.ok) {
-    throw new Error(
-      data?.message || "Failed to activate customer."
+  useEffect(() => {
+    fetchInactiveCustomers();
+  }, []);
+
+  // =========================
+  // Activate Customer
+  // =========================
+  const handleActivate = async (customer) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to activate ${customer.name}?`
     );
-  }
 
-  // Remove activated customer from inactive list
-  setCustomers((previousCustomers) =>
-    previousCustomers.filter(
-      (item) => item.id !== customer.id
-    )
-  );
-} catch (error) {
-  console.error("Activate customer error:", error);
-  setError(
-    error.message || "Failed to activate customer."
-  );
-} finally {
-  setActivatingId(null);
-}
+    if (!confirmed) {
+      return;
+    }
 
-};
+    try {
+      setActivatingId(customer.id);
+      setError("");
 
-return ( <div className="min-h-screen bg-gray-50"> <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-{/* =========================
+      const response = await fetch(
+        `/api/customers/${customer.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: customer.name,
+            phone: customer.phone || "",
+            deliveryLocation: customer.deliveryLocation,
+            customerType: customer.customerType,
+            dailyBottles: customer.dailyBottles,
+            bottlePrice: customer.bottlePrice,
+            startDate: customer.startDate,
+            isActive: true,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message || "Failed to activate customer."
+        );
+      }
+
+      // Remove activated customer from inactive list
+      setCustomers((previousCustomers) =>
+        previousCustomers.filter(
+          (item) => item.id !== customer.id
+        )
+      );
+    } catch (error) {
+      console.error("Activate customer error:", error);
+      setError(
+        error.message || "Failed to activate customer."
+      );
+    } finally {
+      setActivatingId(null);
+    }
+
+  };
+
+  return (<div className="min-h-screen bg-gray-50"> <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    {/* =========================
 Header
 ========================== */} <div className="mb-6"> <div className="mb-3 flex flex-wrap items-center gap-2"> <Link
-           href="/customers"
-           className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
-         >
-← Back to Customers </Link> </div>
+      href="/customers"
+      className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
+    >
+      ← Back to Customers </Link> </div>
 
 
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -205,6 +205,14 @@ Header
                   </th>
 
                   <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Delivered
+                  </th>
+
+                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Pending
+                  </th>
+
+                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Daily Bottles
                   </th>
 
@@ -252,16 +260,27 @@ Header
                     {/* Type */}
                     <td className="px-5 py-4">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          customer.customerType === "MONTHLY"
-                            ? "bg-purple-100 text-purple-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${customer.customerType === "MONTHLY"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-green-100 text-green-700"
+                          }`}
                       >
                         {customer.customerType === "MONTHLY"
                           ? "Monthly"
                           : "Cash"}
                       </span>
+                    </td>
+
+                    {/* Total Pending Botal */}
+
+                    <td className="px-5 py-4 text-sm font-medium text-gray-700">
+                      {customer.totalBottles || 0} bottles
+                    </td>
+
+                    {/* Pending Ammount */}
+
+                    <td className="px-5 py-4 text-sm font-semibold text-red-600">
+                      Rs. {Number(customer.remainingAmount || 0).toLocaleString()}
                     </td>
 
                     {/* Daily Bottles */}
@@ -436,6 +455,6 @@ Header
       </>
     )}
   </div>
-</div>
-);
+  </div>
+  );
 }

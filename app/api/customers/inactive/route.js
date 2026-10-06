@@ -25,24 +25,62 @@ export async function GET() {
         storeId,
         isActive: false,
       },
+      include: {
+        deliveries: {
+          select: {
+            bottles: true,
+            totalAmount: true,
+          },
+        },
+        payments: {
+          select: {
+            amount: true,
+          },
+        },
+      },
       orderBy: {
         updatedAt: "desc",
       },
     });
 
-    const formattedCustomers = customers.map((customer) => ({
-      id: customer.id,
-      name: customer.name,
-      phone: customer.phone,
-      deliveryLocation: customer.deliveryLocation,
-      customerType: customer.customerType,
-      dailyBottles: customer.dailyBottles,
-      bottlePrice: Number(customer.bottlePrice),
-      startDate: customer.startDate.toISOString(),
-      isActive: customer.isActive,
-      createdAt: customer.createdAt.toISOString(),
-      updatedAt: customer.updatedAt.toISOString(),
-    }));
+    const formattedCustomers = customers.map((customer) => {
+    const totalBottles = customer.deliveries.reduce(
+        (sum, delivery) => sum + Number(delivery.bottles || 0),
+        0
+    );
+
+    const totalBill = customer.deliveries.reduce(
+        (sum, delivery) => sum + Number(delivery.totalAmount || 0),
+        0
+    );
+
+    const totalPaid = customer.payments.reduce(
+        (sum, payment) => sum + Number(payment.amount || 0),
+        0
+    );
+
+    const remainingAmount = Math.max(totalBill - totalPaid, 0);
+
+    return {
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone,
+        deliveryLocation: customer.deliveryLocation,
+        customerType: customer.customerType,
+        dailyBottles: customer.dailyBottles,
+        bottlePrice: Number(customer.bottlePrice),
+        startDate: customer.startDate.toISOString(),
+        isActive: customer.isActive,
+        createdAt: customer.createdAt.toISOString(),
+        updatedAt: customer.updatedAt.toISOString(),
+
+        // History
+        totalBottles,
+        totalBill,
+        totalPaid,
+        remainingAmount,
+    };
+});
 
     return NextResponse.json(
       {

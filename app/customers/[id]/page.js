@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import prisma from "@/lib/prisma";
+import DeleteCustomerButton from "@/components/DeleteCustomerButton";
 
 export default async function CustomerDetailsPage({ params }) {
   const { id } = await params;
@@ -137,21 +138,19 @@ export default async function CustomerDetailsPage({ params }) {
                 </h1>
 
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    customerType === "Monthly"
-                      ? "bg-purple-100 text-purple-700"
-                      : "bg-blue-100 text-blue-700"
-                  }`}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${customerType === "Monthly"
+                    ? "bg-purple-100 text-purple-700"
+                    : "bg-blue-100 text-blue-700"
+                    }`}
                 >
                   {customerType}
                 </span>
 
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    customer.isActive
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${customer.isActive
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-100 text-gray-600"
+                    }`}
                 >
                   {customer.isActive ? "Active" : "Inactive"}
                 </span>
@@ -170,12 +169,10 @@ export default async function CustomerDetailsPage({ params }) {
                 Edit Customer
               </Link>
 
-              <button
-                type="button"
-                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700"
-              >
-                Delete Customer
-              </button>
+              <DeleteCustomerButton
+                customerId={customer.id}
+                customerName={customer.name}
+              />
             </div>
           </div>
 
@@ -248,11 +245,10 @@ export default async function CustomerDetailsPage({ params }) {
               <div>
                 <p className="text-sm text-gray-500">Customer Status</p>
                 <p
-                  className={`mt-1 font-medium ${
-                    customer.isActive
-                      ? "text-green-600"
-                      : "text-gray-500"
-                  }`}
+                  className={`mt-1 font-medium ${customer.isActive
+                    ? "text-green-600"
+                    : "text-gray-500"
+                    }`}
                 >
                   {customer.isActive ? "Active" : "Inactive"}
                 </p>

@@ -1,5 +1,5 @@
 "use client";
-
+import { useState } from "react";
 import { UserRoundGroup } from "lucide-react";
 import Link from "next/link";
 
@@ -7,18 +7,42 @@ export default function CustomerTable({
     customers = [],
     onDelete,
 }) {
-    const handleDelete = (customer) => {
-        if (onDelete) {
-            onDelete(customer);
-            return;
-        }
+    const [deletingId, setDeletingId] = useState(null);
+    const handleDelete = async (customer) => {
+        const customerId = customer.id || customer._id;
 
         const confirmed = window.confirm(
             `Are you sure you want to delete ${customer.name}?`
         );
 
-        if (confirmed) {
-            console.log("Delete customer:", customer._id || customer.id);
+        if (!confirmed) return;
+
+        try {
+            setDeletingId(customerId);
+
+            if (onDelete) {
+                await onDelete(customer);
+                return;
+            }
+
+            const response = await fetch(`/api/customers/${customerId}`, {
+                method: "DELETE",
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || "Failed to delete customer."
+                );
+            }
+
+            window.location.reload();
+        } catch (error) {
+            console.error("Delete customer error:", error);
+            window.alert(error.message || "Failed to delete customer.");
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -183,9 +207,12 @@ export default function CustomerTable({
                                         <button
                                             type="button"
                                             onClick={() => handleDelete(customer)}
+                                            disabled={deletingId === (customer.id || customer._id)}
                                             className="rounded-lg px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50"
                                         >
-                                            Delete
+                                            {deletingId === (customer.id || customer._id)
+                                                ? "Deleting..."
+                                                : "Delete"}
                                         </button>
                                     </div>
                                 </td>
@@ -299,13 +326,15 @@ export default function CustomerTable({
                                 >
                                     Edit
                                 </Link>
-
                                 <button
                                     type="button"
                                     onClick={() => handleDelete(customer)}
+                                    disabled={deletingId === (customer.id || customer._id)}
                                     className="flex-1 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600"
                                 >
-                                    Delete
+                                    {deletingId === (customer.id || customer._id)
+                                        ? "Deleting..."
+                                        : "Delete"}
                                 </button>
                             </div>
                         </div>
