@@ -155,7 +155,7 @@ export async function POST(request) {
     return NextResponse.json(
       {
         message:
-          "Account created successfully. Your 2-month free trial has started.",
+          `Account created successfully. Your ${trialPlan.durationDays}-day free trial has started.`,
 
         user: {
           id: result.user.id,

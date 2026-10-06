@@ -61,7 +61,7 @@ export default function LandingPage() {
         "Manage monthly customers separately from cash customers and keep track of their billing and outstanding amounts.",
     },
     {
-      icon: "💧",
+      icon: <Droplets />,
       title: "Water Business Focused",
       description:
         "Built specifically around the daily workflow of mineral water and bottle delivery businesses.",
@@ -268,7 +268,7 @@ export default function LandingPage() {
               <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-gray-500">
                 <span className="flex items-center gap-2">
                   <span className="text-green-500">✓</span>
-                  2 Months Free Trial
+                  1 Month Free Trial
                 </span>
 
                 <span className="flex items-center gap-2">
@@ -456,7 +456,7 @@ export default function LandingPage() {
 
           <div className="text-center">
             <p className="text-2xl font-extrabold text-gray-900">
-              2 Months
+              1 Month
             </p>
             <p className="mt-1 text-sm text-gray-500">
               Free Trial

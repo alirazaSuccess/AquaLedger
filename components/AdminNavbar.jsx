@@ -61,7 +61,7 @@ export default function AdminNavbar() {
           href="/admin"
           className="text-xl font-bold text-gray-900"
         >
-          PaniPeelo
+          AquaLedger
           <span className="ml-2 text-sm font-medium text-gray-500">
             Admin
           </span>
