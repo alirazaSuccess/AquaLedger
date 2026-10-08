@@ -51,10 +51,12 @@ export default function LoginPage() {
 
       if (!response.ok) {
         setError(data.message || "Login failed.");
+        setLoading(false);
         return;
       }
 
       // Login successful
+      // Loading remains true while redirect is happening.
       if (data.user.role === "ADMIN") {
         router.push("/admin");
       } else {
@@ -62,10 +64,12 @@ export default function LoginPage() {
       }
 
       router.refresh();
+
+      // DO NOT setLoading(false) here.
+      // Keep "Logging in..." until the new page replaces this page.
     } catch (error) {
       console.error("Login error:", error);
       setError("Something went wrong. Please try again.");
-    } finally {
       setLoading(false);
     }
   };

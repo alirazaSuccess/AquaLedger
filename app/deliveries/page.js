@@ -84,7 +84,7 @@ export default async function DeliveriesPage({ searchParams }) {
     });
 
     // --------------------------------
-    // Get today's deliveries
+    // Get deliveries for selected date
     // --------------------------------
     const todaysDeliveries = await prisma.delivery.findMany({
       where: {
@@ -112,7 +112,7 @@ export default async function DeliveriesPage({ searchParams }) {
     });
 
     // --------------------------------
-    // Build today's delivery list
+    // Build delivery list for selected date
     // --------------------------------
     const deliveries = customers.map((customer) => {
       const delivery = deliveryMap.get(customer.id);
@@ -133,6 +133,7 @@ export default async function DeliveriesPage({ searchParams }) {
           status: "Delivered",
           totalAmount: Number(delivery.totalAmount),
           deliveryDate: delivery.deliveryDate,
+          isExistingDelivery: true,
         };
       }
 
@@ -150,7 +151,10 @@ export default async function DeliveriesPage({ searchParams }) {
         actualBottles: 0,
         status: "Pending",
         totalAmount: 0,
-        deliveryDate: null,
+
+        // IMPORTANT:
+        // Use the date selected by the supplier.
+        deliveryDate: selectedDate,
       };
     });
 
@@ -406,7 +410,10 @@ export default async function DeliveriesPage({ searchParams }) {
               </div>
             </div>
 
-            <DeliveryTable deliveries={filteredDeliveries} />
+            <DeliveryTable
+              deliveries={filteredDeliveries}
+              deliveryDate={selectedDate}
+            />
           </div>
         </main>
       </>

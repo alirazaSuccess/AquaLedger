@@ -5,6 +5,7 @@ import { useState } from "react";
 
 export default function DeliveryTable({
     deliveries = [],
+    deliveryDate,
     onSave,
     onSaveAll,
 }) {
@@ -53,7 +54,13 @@ export default function DeliveryTable({
 
         if (savingId === deliveryId || savingAll) return;
 
+        // Already saved delivery ko dobara save nahi karna
+        if (delivery.isExistingDelivery) {
+            return;
+        }
+
         setSavingId(deliveryId);
+
         const status = delivery.status;
         const bottles = Number(delivery.actualBottles || 0);
 
@@ -67,17 +74,20 @@ export default function DeliveryTable({
                 )
             );
 
+            setSavingId(null);
             return;
         }
 
         // Delivered requires bottles
         if (status === "Delivered" && bottles <= 0) {
             alert("Please enter the actual bottle quantity.");
+            setSavingId(null);
             return;
         }
 
         if (!delivery.customerId) {
             alert("Customer ID is missing.");
+            setSavingId(null);
             return;
         }
 
@@ -90,13 +100,25 @@ export default function DeliveryTable({
                 body: JSON.stringify({
                     customerId: delivery.customerId,
                     bottles,
-                    deliveryDate:
-                        delivery.deliveryDate ||
-                        new Date().toISOString(),
+                    deliveryDate: delivery.deliveryDate || deliveryDate,
                 }),
             });
 
             const data = await response.json();
+
+            // Duplicate delivery already exists
+            if (response.status === 409) {
+                setDeliveryData((previous) =>
+                    previous.filter(
+                        (item) =>
+                            (item._id || item.id) !==
+                            (delivery._id || delivery.id)
+                    )
+                );
+
+                alert("This customer's delivery is already saved for this date.");
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error(
@@ -130,16 +152,27 @@ export default function DeliveryTable({
         if (savingAll) return;
 
         setSavingAll(true);
+
         try {
-            const savedIds = [];
+            const processedIds = [];
+            let savedCount = 0;
+            let skippedCount = 0;
 
             for (const delivery of deliveryData) {
+                const deliveryId = delivery._id || delivery.id;
                 const status = delivery.status;
                 const bottles = Number(delivery.actualBottles || 0);
 
+                // Already saved delivery ko skip karo
+                if (delivery.isExistingDelivery) {
+                    processedIds.push(deliveryId);
+                    skippedCount++;
+                    continue;
+                }
+
                 // Pending / Skipped
                 if (status === "Pending" || status === "Skipped") {
-                    savedIds.push(delivery._id || delivery.id);
+                    processedIds.push(deliveryId);
                     continue;
                 }
 
@@ -167,12 +200,19 @@ export default function DeliveryTable({
                         customerId: delivery.customerId,
                         bottles,
                         deliveryDate:
-                            delivery.deliveryDate ||
-                            new Date().toISOString(),
+                            delivery.deliveryDate || deliveryDate,
                     }),
                 });
 
                 const data = await response.json();
+
+                // Duplicate delivery:
+                // skip it and continue with the next customer
+                if (response.status === 409) {
+                    processedIds.push(deliveryId);
+                    skippedCount++;
+                    continue;
+                }
 
                 if (!response.ok) {
                     throw new Error(
@@ -182,27 +222,38 @@ export default function DeliveryTable({
                     );
                 }
 
-                savedIds.push(delivery._id || delivery.id);
+                processedIds.push(deliveryId);
+                savedCount++;
             }
 
             // Remove processed rows from UI
             setDeliveryData((previous) =>
                 previous.filter(
                     (delivery) =>
-                        !savedIds.includes(
+                        !processedIds.includes(
                             delivery._id || delivery.id
                         )
                 )
             );
 
             if (onSaveAll) {
-                onSaveAll(savedIds);
+                onSaveAll(processedIds);
             }
 
-            alert("Deliveries processed successfully.");
+            if (skippedCount > 0) {
+                alert(
+                    `Deliveries processed successfully.\n\nSaved: ${savedCount}\nAlready saved/skipped: ${skippedCount}`
+                );
+            } else {
+                alert(
+                    `Deliveries processed successfully.\n\nSaved: ${savedCount}`
+                );
+            }
         } catch (error) {
             console.error("Save all deliveries error:", error);
-            alert(error.message || "Failed to save deliveries.");
+            alert(
+                error.message || "Failed to save deliveries."
+            );
         } finally {
             setSavingAll(false);
         }
@@ -389,16 +440,20 @@ export default function DeliveryTable({
 
                                         {/* Action */}
                                         <td className="px-5 py-4 text-right">
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleSave(delivery)
-                                                }
-                                                disabled={savingId === id || savingAll}
-                                                className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700"
-                                            >
-                                                {savingId === id ? "Saving..." : "Save"}
-                                            </button>
+                                            {delivery.isExistingDelivery ? (
+                                                <span className="inline-flex rounded-lg bg-green-100 px-4 py-2 text-xs font-medium text-green-700">
+                                                    Already Saved
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSave(delivery)}
+                                                    disabled={savingId === id || savingAll}
+                                                    className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700"
+                                                >
+                                                    {savingId === id ? "Saving..." : "Save"}
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 );
@@ -565,16 +620,20 @@ export default function DeliveryTable({
                             </div>
 
                             {/* Save */}
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    handleSave(delivery)
-                                }
-                                disabled={savingId === id || savingAll}
-                                className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
-                            >
-                                {savingId === id ? "Saving..." : "Save Delivery"}
-                            </button>
+                            {delivery.isExistingDelivery ? (
+                                <div className="mt-4 w-full rounded-lg bg-green-100 px-4 py-3 text-center text-sm font-medium text-green-700">
+                                    Already Saved for This Date
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => handleSave(delivery)}
+                                    disabled={savingId === id || savingAll}
+                                    className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
+                                >
+                                    {savingId === id ? "Saving..." : "Save Delivery"}
+                                </button>
+                            )}
                         </div>
                     );
                 })}
